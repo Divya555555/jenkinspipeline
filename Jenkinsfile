@@ -38,28 +38,37 @@ pipeline {
             }
         }
 
-       stage('Deploy to Google Cloud Run') {
-    steps {
-        script {
-            withCredentials([file(credentialsId: 'gcp-service-account', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                // Authenticate using service account key
-                sh "gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS"
-                sh "gcloud config set project ${PROJECT_ID}"
+        stage('Deploy to Google Cloud Run') {
+            steps {
+                script {
+                    withCredentials([file(credentialsId: 'gcp-service-account', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                        // Authenticate using service account key
+                        sh "gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS"
+                        sh "gcloud config set project ${PROJECT_ID}"
 
-                // Deploy to Cloud Run
-                sh "gcloud run deploy ${IMAGE_NAME} \
-                    --image docker.io/${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER} \
-                    --platform managed \
-                    --region us-central1 \
-                    --allow-unauthenticated"
+                        // Deploy to Cloud Run
+                        sh "gcloud run deploy ${IMAGE_NAME} \
+                            --image docker.io/${DOCKER_HUB_CREDENTIALS_USR}/${IMAGE_NAME}:${BUILD_NUMBER} \
+                            --platform managed \
+                            --region us-central1 \
+                            --allow-unauthenticated"
 
-                // Make service publicly accessible
-                sh "gcloud run services add-iam-policy-binding ${IMAGE_NAME} \
-                    --region us-central1 \
-                    --member='allUsers' \
-                    --role='roles/run.invoker'"
+                        // Make service publicly accessible
+                        sh "gcloud run services add-iam-policy-binding ${IMAGE_NAME} \
+                            --region us-central1 \
+                            --member='allUsers' \
+                            --role='roles/run.invoker'"
+                    }
+                }
+            }
+        }
+
+        stage('Cleanup Workspace') {
+            steps {
+                script {
+                    cleanWs()
+                }
             }
         }
     }
 }
-
